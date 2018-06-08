@@ -183,10 +183,13 @@ class MainForm(tk.Frame):
         self.validate_date()
         self.create_widgets()
 
-        self.update_idletasks()
-        x = (self.master.winfo_screenwidth() - self.master.winfo_reqwidth()) / 2
-        y = (self.master.winfo_screenheight() - self.master.winfo_reqheight()) / 2
-        self.master.geometry("+%d+%d" % (x, y))
+        # The code commented below makes the window to centralize on the monitor
+        # But it is not working well on Linux, as the animation is annoying to watch
+
+        # self.update_idletasks()
+        # x = (self.master.winfo_screenwidth() - self.master.winfo_reqwidth()) / 2
+        # y = (self.master.winfo_screenheight() - self.master.winfo_reqheight()) / 2
+        # self.master.geometry("+%d+%d" % (x, y))
 
     def create_widgets(self):
         top = self.winfo_toplevel()
@@ -234,7 +237,7 @@ class MainForm(tk.Frame):
             elif self.spin_value_day.get() == '32':
                 self.spin_value_month.set(int(self.spin_value_month.get()) + 1)
                 self.spin_value_day.set(1)
-        elif int(self.spin_value_month.get()) == 3: # march is special because of february
+        elif int(self.spin_value_month.get()) == 3:  # march is special because of february
             if self.spin_value_day.get() == '0':
                 self.spin_value_month.set(int(self.spin_value_month.get()) - 1)
                 self.spin_value_day.set(29)
@@ -287,10 +290,15 @@ class MainForm(tk.Frame):
     def create_report(self):
         report = Report(db=self.connection, master=self)
         report.transient(self)
-        report.update_idletasks()
-        x = (report.winfo_screenwidth() - report.winfo_reqwidth()) / 2
-        y = (report.winfo_screenheight() - report.winfo_reqheight()) / 2
-        report.geometry("+%d+%d" % (x, y))
+
+        # The code commented below makes the window to centralize over the existing window
+        # But it is not working well on Linux, as the animation is annoying to watch
+
+        # report.update_idletasks()
+        # x = (report.winfo_screenwidth() - report.winfo_reqwidth()) / 2
+        # y = (report.winfo_screenheight() - report.winfo_reqheight()) / 2
+        # report.geometry("+%d+%d" % (x, y))
+
         report.mainloop()
 
     def validate_date(self):
