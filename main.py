@@ -27,10 +27,15 @@ import sqlite3 as sql  # database operations
 from datetime import date  # most of the date strings are get from it
 from datetime import timedelta  # some date calculations
 from datetime import datetime  # for report footer
+import os
 import __init__  # to get the application version
 
 
 class Report(tk.Toplevel):
+
+    # TODO: add a check box 'reverse' for displaying the dates on the list and TXT file in reverse order
+    # TODO: Include results for 'migraine' and 'medicine' to the list and generated TXT file
+    # TODO: EPIC: add a button to generate graphs of the filtered result with mathPlotLib
 
     def __init__(self, db, master=None):
         tk.Toplevel.__init__(self)
@@ -141,6 +146,13 @@ class Report(tk.Toplevel):
 
 class MainForm(tk.Frame):
 
+    # TODO: Add 2 buttons, one to go straight to yesterday and another one for today
+    # TODO: Add 2 buttons, one to increment one day and another to decrease one day
+    # TODO: Add key bindings to go to previous/next day, it could be the keyboard arrows
+    # TODO: Add a flag 'migraine' to the saved results, database structure will be affected
+    # TODO: Add a flag 'medicine' to report if the user has taken medicine to alleviate the headache
+    # TODO: EPIC: create a new window for maintenance of the records, to allow changing of the values
+
     def __init__(self, master=None):
         tk.Frame.__init__(self, master)
 
@@ -152,14 +164,16 @@ class MainForm(tk.Frame):
 
         self.grid(sticky=tk.W + tk.E + tk.N + tk.S)
 
+        yesterday = date.today() + timedelta(days=-1)
+
         self.spin_value_day = tk.StringVar()
-        self.spin_value_day.set(str(date.today().day))
+        self.spin_value_day.set(str(yesterday.day))
 
         self.spin_value_month = tk.StringVar()
-        self.spin_value_month.set(str(date.today().month))
+        self.spin_value_month.set(str(yesterday.month))
 
         self.spin_value_year = tk.StringVar()
-        self.spin_value_year.set(str(date.today().year))
+        self.spin_value_year.set(str(yesterday.year))
 
         self.list_values_headache = ('0 - none', '1 - weak', '2 - medium', '3 - strong')
         self.list_value_headache = tk.StringVar()
@@ -183,13 +197,11 @@ class MainForm(tk.Frame):
         self.validate_date()
         self.create_widgets()
 
-        # The code commented below makes the window to centralize on the monitor
-        # But it is not working well on Linux, as the animation is annoying to watch
-
-        # self.update_idletasks()
-        # x = (self.master.winfo_screenwidth() - self.master.winfo_reqwidth()) / 2
-        # y = (self.master.winfo_screenheight() - self.master.winfo_reqheight()) / 2
-        # self.master.geometry("+%d+%d" % (x, y))
+        if os.name == 'nt':
+            self.update_idletasks()
+            x = (self.master.winfo_screenwidth() - self.master.winfo_reqwidth()) / 2
+            y = (self.master.winfo_screenheight() - self.master.winfo_reqheight()) / 2
+            self.master.geometry("+%d+%d" % (x, y))
 
     def create_widgets(self):
         top = self.winfo_toplevel()
@@ -291,35 +303,45 @@ class MainForm(tk.Frame):
         report = Report(db=self.connection, master=self)
         report.transient(self)
 
-        # The code commented below makes the window to centralize over the existing window
-        # But it is not working well on Linux, as the animation is annoying to watch
-
-        # report.update_idletasks()
-        # x = (report.winfo_screenwidth() - report.winfo_reqwidth()) / 2
-        # y = (report.winfo_screenheight() - report.winfo_reqheight()) / 2
-        # report.geometry("+%d+%d" % (x, y))
+        if os.name == 'nt':
+            report.update_idletasks()
+            x = (report.winfo_screenwidth() - report.winfo_reqwidth()) / 2
+            y = (report.winfo_screenheight() - report.winfo_reqheight()) / 2
+            report.geometry("+%d+%d" % (x, y))
 
         report.mainloop()
 
     def validate_date(self):
 
+        self.label_status.configure(text='')
+
+        yesterday = date.today() + timedelta(days=-1)
+        tomorrow = date.today() + timedelta(days=+1)
+        full_date = self.get_full_date()
+
         self.increment_month()
         self.increment_year()
 
-        full_date = self.get_full_date()
         quantity = self.connection.execute('select count(*) from headache where date = ?', (full_date,))
         value = quantity.fetchall()
         quantity = int(value[0][0])
 
         if quantity > 0:
             self.button_save.configure(state=tk.DISABLED)
-            self.label_status.configure(text='( X ) This date was already created.')
+            self.label_status.configure(text='( X ) This date is already fulfilled.')
         elif self.verify_date() is False:
             self.button_save.configure(state=tk.DISABLED)
             self.label_status.configure(text='( X ) This date is invalid.')
         else:
             self.button_save.configure(state=tk.NORMAL)
-            self.label_status.configure(text='')
+            if full_date == yesterday.isoformat():
+                self.label_status.configure(text='Current selected date: yesterday.')
+            elif full_date == tomorrow.isoformat():
+                self.label_status.configure(text='Current selected date: tomorrow.')
+            elif full_date == date.today().isoformat():
+                self.label_status.configure(text='Current selected date: today.')
+            else:
+                self.label_status.configure(text='')
 
     def get_full_date(self):
         day = '{:0>2}'.format(self.spin_value_day.get())
