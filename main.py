@@ -23,6 +23,7 @@ import tkinter as tk  # GUI toolkit
 from tkinter import ttk  # widget for the separator
 from tkinter import filedialog  # file dialog for the report export
 from tkinter import messagebox  # messagebox for displaying error messages
+from tkinter import tix
 import sqlite3 as sql  # database operations
 from datetime import date  # most of the date strings are get from it
 from datetime import timedelta  # some date calculations
@@ -146,9 +147,6 @@ class Report(tk.Toplevel):
 
 class MainForm(tk.Frame):
 
-    # TODO: Add a flag 'migraine' to the saved results, database structure will be affected
-    # TODO: Add a flag 'medicine' to report if the user has taken medicine to alleviate the headache
-    # TODO: Add a 'comment' field to report any specific situation on the day
     # TODO: EPIC: create a new window for maintenance of the records, to allow changing of the values
 
     def __init__(self, master=None):
@@ -156,6 +154,8 @@ class MainForm(tk.Frame):
 
         self.master.title('Headache Diary - v' + __init__.version)
         self.master.resizable(False, False)
+
+        self.master.focus_force()
 
         self.connection = self.load_database()
         self.initialize_database()
@@ -177,6 +177,12 @@ class MainForm(tk.Frame):
         self.list_value_headache = tk.StringVar()
         self.list_value_headache.set(str(self.list_values_headache[0]))
 
+        self.check_migraine_value = tk.IntVar()
+        self.check_migraine_value.set(0)
+
+        self.check_medicine_value = tk.IntVar()
+        self.check_medicine_value.set(0)
+
         self.label_top = tk.Label(self, text='Choose the date and headache intensity, then click on Save:')
         self.label_date = tk.Label(self, text='Date:', width=20)
         self.spin_digits_day = tk.Spinbox(self, from_=0, to=32, increment=1, textvariable=self.spin_value_day,
@@ -193,15 +199,26 @@ class MainForm(tk.Frame):
 
         self.label_intensity = tk.Label(self, text='Headache intensity:')
         self.combo_headache = tk.OptionMenu(self, self.list_value_headache, *self.list_values_headache)
+        self.label_migraine = tk.Label(self, text='Migraine:')
+        self.check_migraine = tk.Checkbutton(self, variable=self.check_migraine_value)
+        self.label_medicine = tk.Label(self, text='Medicine:')
+        self.check_medicine = tk.Checkbutton(self, variable=self.check_medicine_value)
+        self.label_comment = tk.Label(self, text='Comment:')
+        self.text_comment = tk.Text(self, wrap=tk.WORD, height=3, width=1)
+
         self.button_save = tk.Button(self, text='Save', command=self.save_value)
         self.button_report = tk.Button(self, text='Report', command=self.create_report)
         self.separator = ttk.Separator(self, orient=tk.HORIZONTAL)
+        self.separator2 = ttk.Separator(self, orient=tk.HORIZONTAL)
         self.label_status = tk.Label(self, text='')
 
-        self.bind_all('<KeyRelease-Right>', self.next_day)
-        self.bind_all('<KeyRelease-Up>', self.next_day)
-        self.bind_all('<KeyRelease-Left>', self.previous_day)
-        self.bind_all('<KeyRelease-Down>', self.previous_day)
+        self.balloon = tix.Balloon(self.master)
+
+        self.balloon.bind_widget(self.combo_headache,
+                                 balloonmsg='Click to select the intensity of your headache.')
+
+        self.bind_all('<Alt-Right>', self.next_day)
+        self.bind_all('<Alt-Left>', self.previous_day)
 
         self.validate_date()
         self.create_widgets()
@@ -224,6 +241,10 @@ class MainForm(tk.Frame):
         self.rowconfigure(4, weight=0)
         self.rowconfigure(5, weight=0)
         self.rowconfigure(6, weight=0)
+        self.rowconfigure(7, weight=0)
+        self.rowconfigure(8, weight=0)
+        self.rowconfigure(9, weight=0)
+        self.rowconfigure(10, weight=0)
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
@@ -241,16 +262,27 @@ class MainForm(tk.Frame):
         self.yesterday.grid(row=2, column=1, sticky=tk.W + tk.E, pady=5, padx=5)
         self.today.grid(row=2, column=2, sticky=tk.W + tk.E, pady=5, padx=5)
         self.nextday.grid(row=2, column=3, sticky=tk.E, pady=5, padx=5)
+
+        self.separator.grid(row=3, column=0, sticky=tk.E + tk.W, columnspan=4)
         
-        self.label_intensity.grid(row=3, column=0, sticky=tk.W, columnspan=2, padx=5)
-        self.combo_headache.grid(row=3, column=2, sticky=tk.E + tk.W, columnspan=2)
+        self.label_intensity.grid(row=4, column=0, sticky=tk.W, columnspan=2, padx=5)
+        self.combo_headache.grid(row=4, column=2, sticky=tk.E + tk.W, columnspan=2)
 
-        self.button_save.grid(row=4, column=3, sticky=tk.E + tk.W, pady=5, padx=5)
-        self.button_report.grid(row=4, column=0, sticky=tk.E + tk.W, pady=5, padx=5)
+        self.label_migraine.grid(row=5, column=0, sticky=tk.W, columnspan=2, padx=5)
+        self.check_migraine.grid(row=5, column=3, sticky=tk.E)
 
-        self.separator.grid(row=5, column=0, sticky=tk.E + tk.W, columnspan=4)
+        self.label_medicine.grid(row=6, column=0, sticky=tk.W, columnspan=2, padx=5)
+        self.check_medicine.grid(row=6, column=3, sticky=tk.E)
 
-        self.label_status.grid(row=6, column=0, sticky=tk.W, columnspan=4)
+        self.label_comment.grid(row=7, column=0, sticky=tk.W + tk.N, padx=5)
+        self.text_comment.grid(row=7, column=1, sticky=tk.W + tk.E, columnspan=3)
+
+        self.button_save.grid(row=8, column=3, sticky=tk.E + tk.W, pady=5, padx=5)
+        self.button_report.grid(row=8, column=0, sticky=tk.E + tk.W, pady=5, padx=5)
+
+        self.separator2.grid(row=9, column=0, sticky=tk.E + tk.W, columnspan=4)
+
+        self.label_status.grid(row=10, column=0, sticky=tk.W, columnspan=4)
 
     def increment_month(self):
         if int(self.spin_value_month.get()) in [4, 6, 8, 9, 11]:
@@ -293,7 +325,12 @@ class MainForm(tk.Frame):
     def save_value(self):
         full_date = self.get_full_date()
         intensity = int(self.list_value_headache.get()[0])
-        self.connection.execute('insert into headache (date, intensity) values (?, ?)', (full_date, intensity))
+        migraine = self.check_migraine_value.get()
+        medicine = self.check_medicine_value.get()
+        comment = self.text_comment.get('1.0', tk.END)
+        self.connection.execute(
+            'insert into headache (date, intensity, migraine, medicine, comment) values (?, ?, ?, ?, ?)',
+            (full_date, intensity, migraine, medicine, comment))
         self.connection.commit()
         self.button_save.configure(state=tk.DISABLED)
         self.label_status.configure(text='( ! ) Date and intensity saved successfully!')
@@ -308,7 +345,10 @@ class MainForm(tk.Frame):
             self.connection.execute('CREATE TABLE "headache" ('
                                     '"_id"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, '
                                     '"date"	TEXT NOT NULL UNIQUE, '
-                                    '"intensity"	INTEGER NOT NULL DEFAULT 1 CHECK(intensity >= 0 and intensity <= 3)'
+                                    '"intensity" INTEGER NOT NULL DEFAULT 1 CHECK(intensity >= 0 and intensity <= 3),'
+                                    '"migraine" INTEGER NOT NULL DEFAULT 0,'
+                                    '"medicine" INTEGER NOT NULL DEFAULT 0,'
+                                    '"comment" TEXT DEFAULT NULL'
                                     ');')
             self.connection.commit()
         except sql.OperationalError as e:
@@ -379,12 +419,12 @@ class MainForm(tk.Frame):
         else:
             return True
 
-    def next_day(self, event):
+    def next_day(self, event=None):
         del event
         self.spin_value_day.set(str(int(self.spin_value_day.get())+1))
         self.validate_date()
 
-    def previous_day(self, event):
+    def previous_day(self, event=None):
         del event
         self.spin_value_day.set(str(int(self.spin_value_day.get()) - 1))
         self.validate_date()
@@ -404,5 +444,6 @@ class MainForm(tk.Frame):
 
 
 if __name__ == '__main__':
+    load_tix = tix.Tk()
     app = MainForm()
     app.mainloop()
