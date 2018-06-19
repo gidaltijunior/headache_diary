@@ -34,7 +34,7 @@ import __init__  # to get the application version
 class Report(tk.Toplevel):
 
     # TODO: add a check box 'reverse' for displaying the dates on the list and TXT file in reverse order
-    # TODO: Include results for 'migraine' and 'medicine' to the list and generated TXT file
+    # TODO: Include results for 'migraine', 'medicine' and 'comment' to the list and generated TXT file
     # TODO: EPIC: add a button to generate graphs of the filtered result with mathPlotLib
 
     def __init__(self, db, master=None):
@@ -146,11 +146,9 @@ class Report(tk.Toplevel):
 
 class MainForm(tk.Frame):
 
-    # TODO: Add 2 buttons, one to go straight to yesterday and another one for today
-    # TODO: Add 2 buttons, one to increment one day and another to decrease one day
-    # TODO: Add key bindings to go to previous/next day, it could be the keyboard arrows
     # TODO: Add a flag 'migraine' to the saved results, database structure will be affected
     # TODO: Add a flag 'medicine' to report if the user has taken medicine to alleviate the headache
+    # TODO: Add a 'comment' field to report any specific situation on the day
     # TODO: EPIC: create a new window for maintenance of the records, to allow changing of the values
 
     def __init__(self, master=None):
@@ -180,19 +178,30 @@ class MainForm(tk.Frame):
         self.list_value_headache.set(str(self.list_values_headache[0]))
 
         self.label_top = tk.Label(self, text='Choose the date and headache intensity, then click on Save:')
-        self.label_date = tk.Label(self, text='Date:')
+        self.label_date = tk.Label(self, text='Date:', width=20)
         self.spin_digits_day = tk.Spinbox(self, from_=0, to=32, increment=1, textvariable=self.spin_value_day,
-                                          wrap=True, state='readonly', command=self.validate_date)
+                                          wrap=True, state='readonly', command=self.validate_date, width=20)
         self.spin_digits_month = tk.Spinbox(self, from_=0, to=13, increment=1, textvariable=self.spin_value_month,
-                                            wrap=True, state='readonly', command=self.validate_date)
+                                            wrap=True, state='readonly', command=self.validate_date, width=20)
         self.spin_digits_year = tk.Spinbox(self, from_=2018, to=3000, increment=1, textvariable=self.spin_value_year,
-                                           state='readonly', command=self.validate_date)
+                                           state='readonly', command=self.validate_date, width=20)
+
+        self.nextday = tk.Button(self, text='+1', command=self.next_day)
+        self.previousday = tk.Button(self, text='-1', command=self.previous_day)
+        self.yesterday = tk.Button(self, text='yesterday', command=self.set_yesterday)
+        self.today = tk.Button(self, text='today', command=self.set_today)
+
         self.label_intensity = tk.Label(self, text='Headache intensity:')
         self.combo_headache = tk.OptionMenu(self, self.list_value_headache, *self.list_values_headache)
         self.button_save = tk.Button(self, text='Save', command=self.save_value)
         self.button_report = tk.Button(self, text='Report', command=self.create_report)
         self.separator = ttk.Separator(self, orient=tk.HORIZONTAL)
         self.label_status = tk.Label(self, text='')
+
+        self.bind_all('<KeyRelease-Right>', self.next_day)
+        self.bind_all('<KeyRelease-Up>', self.next_day)
+        self.bind_all('<KeyRelease-Left>', self.previous_day)
+        self.bind_all('<KeyRelease-Down>', self.previous_day)
 
         self.validate_date()
         self.create_widgets()
@@ -214,25 +223,34 @@ class MainForm(tk.Frame):
         self.rowconfigure(3, weight=0)
         self.rowconfigure(4, weight=0)
         self.rowconfigure(5, weight=0)
+        self.rowconfigure(6, weight=0)
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=1)
         self.columnconfigure(2, weight=1)
         self.columnconfigure(3, weight=1)
 
-        self.label_top.grid(row=0, column=0, sticky=tk.W + tk.E, columnspan=3)
+        self.label_top.grid(row=0, column=0, sticky=tk.W, columnspan=4)
+
         self.label_date.grid(row=1, column=0, sticky=tk.W)
         self.spin_digits_day.grid(row=1, column=1, sticky=tk.W + tk.E)
         self.spin_digits_month.grid(row=1, column=2, sticky=tk.W + tk.E)
         self.spin_digits_year.grid(row=1, column=3, sticky=tk.W + tk.E)
 
-        self.label_intensity.grid(row=2, column=0, sticky=tk.W, columnspan=2)
-        self.combo_headache.grid(row=2, column=2, sticky=tk.E + tk.W, columnspan=2)
+        self.previousday.grid(row=2, column=0, sticky=tk.W, pady=5, padx=5)
+        self.yesterday.grid(row=2, column=1, sticky=tk.W + tk.E, pady=5, padx=5)
+        self.today.grid(row=2, column=2, sticky=tk.W + tk.E, pady=5, padx=5)
+        self.nextday.grid(row=2, column=3, sticky=tk.E, pady=5, padx=5)
+        
+        self.label_intensity.grid(row=3, column=0, sticky=tk.W, columnspan=2, padx=5)
+        self.combo_headache.grid(row=3, column=2, sticky=tk.E + tk.W, columnspan=2)
 
-        self.button_save.grid(row=3, column=3, sticky=tk.E + tk.W, pady=5, padx=5)
-        self.button_report.grid(row=3, column=0, sticky=tk.E + tk.W, pady=5, padx=5)
-        self.separator.grid(row=4, column=0, sticky=tk.E + tk.W, columnspan=4)
-        self.label_status.grid(row=5, column=0, sticky=tk.W, columnspan=4)
+        self.button_save.grid(row=4, column=3, sticky=tk.E + tk.W, pady=5, padx=5)
+        self.button_report.grid(row=4, column=0, sticky=tk.E + tk.W, pady=5, padx=5)
+
+        self.separator.grid(row=5, column=0, sticky=tk.E + tk.W, columnspan=4)
+
+        self.label_status.grid(row=6, column=0, sticky=tk.W, columnspan=4)
 
     def increment_month(self):
         if int(self.spin_value_month.get()) in [4, 6, 8, 9, 11]:
@@ -360,6 +378,29 @@ class MainForm(tk.Frame):
             return False
         else:
             return True
+
+    def next_day(self, event):
+        del event
+        self.spin_value_day.set(str(int(self.spin_value_day.get())+1))
+        self.validate_date()
+
+    def previous_day(self, event):
+        del event
+        self.spin_value_day.set(str(int(self.spin_value_day.get()) - 1))
+        self.validate_date()
+
+    def set_yesterday(self):
+        yesterday = date.today() + timedelta(days=-1)
+        self.spin_value_day.set(str(yesterday.day))
+        self.spin_value_month.set(str(yesterday.month))
+        self.spin_value_year.set(str(yesterday.year))
+        self.validate_date()
+
+    def set_today(self):
+        self.spin_value_day.set(str(date.today().day))
+        self.spin_value_month.set(str(date.today().month))
+        self.spin_value_year.set(str(date.today().year))
+        self.validate_date()
 
 
 if __name__ == '__main__':
