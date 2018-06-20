@@ -54,6 +54,23 @@ class Report(tk.Toplevel):
         self.filter_value.set(self.filter_values[0])
         self.list_value = tk.StringVar()
 
+        # widget creation
+        self.label_filter = tk.Label(self, text='Choose a filter:')
+        self.combo_filter = tk.OptionMenu(self, self.filter_value, *self.filter_values)  # official
+        # self.combo_filter = ttk.Combobox(self, textvariable=self.filter_value, values=self.filter_values) # experiment
+        self.button_filter = tk.Button(self, text='Filter', command=self.search_data)
+        self.scroll_list = tk.Scrollbar(self, orient=tk.VERTICAL)
+        self.listbox = ttk.Treeview(self, columns=('Attribute', 'Value'), displaycolumns='#all', height=20,
+                                    yscrollcommand=self.scroll_list.set)
+        self.scroll_list.configure(command=self.listbox.yview)
+        self.button_export_txt = tk.Button(self, text='Export to txt', command=self.export_to_txt)
+        self.separator = ttk.Separator(self, orient=tk.HORIZONTAL)
+        self.label_status = tk.Label(self, text='')
+
+        # widgets manipulation on window startup
+        self.button_export_txt.configure(state=tk.DISABLED)
+        # self.combo_filter.state(statespec=('!disabled', 'readonly'))  # experimental
+
         # row and column configuration
         self.rowconfigure(0, weight=0)
         self.rowconfigure(1, weight=1)
@@ -64,21 +81,6 @@ class Report(tk.Toplevel):
         self.columnconfigure(1, weight=0)
         self.columnconfigure(2, weight=0)
         self.columnconfigure(3, weight=0)
-
-        # widget creation
-        self.label_filter = tk.Label(self, text='Choose a filter:')
-        self.combo_filter = tk.OptionMenu(self, self.filter_value, *self.filter_values)
-        self.button_filter = tk.Button(self, text='Filter', command=self.search_data)
-        self.scroll_list = tk.Scrollbar(self, orient=tk.VERTICAL)
-        self.listbox = tk.Listbox(self, listvariable=self.list_value, exportselection=0,
-                                  width=50, height=20, activestyle='dotbox', yscrollcommand=self.scroll_list.set)
-        self.scroll_list.configure(command=self.listbox.yview)
-        self.button_export_txt = tk.Button(self, text='Export to txt', command=self.export_to_txt)
-        self.separator = ttk.Separator(self, orient=tk.HORIZONTAL)
-        self.label_status = tk.Label(self, text='')
-
-        # widgets manipulation on window startup
-        self.button_export_txt.configure(state=tk.DISABLED)
 
         # widget deployment
         self.label_filter.grid(row=0, column=0, sticky=tk.W)
@@ -91,8 +93,6 @@ class Report(tk.Toplevel):
         self.label_status.grid(row=4, column=0, stick=tk.W, columnspan=4)
 
     def search_data(self):
-        list_width = self.listbox.cget('width')-10
-        results = list()
         self.report_data.clear()
         cursor = None
         if self.filter_value.get()[0] == '1':  # last 31 days
@@ -118,14 +118,26 @@ class Report(tk.Toplevel):
             quantity = str(value[0][0])
             cursor = self.db.execute('select * from headache order by date ASC')
             self.label_status.configure(text='Report generated for all available data. Returned items: ' + quantity)
-        results.append('{a:.<{width}}{b:.>{width}}'.format(a='Date:', b='Intensity:', width=list_width))
         for i in cursor:
-            self.report_data.append((i[1], i[2]))
-            results.append('{a:.<{width}}{b:.>{width}}'.format(a=i[1], b=i[2], width=list_width))
-        self.list_value.set(results)
+            self.report_data.append((i[1], i[2], i[3], i[4], i[5]))
+            report_date = i[1]
+            report_intensity = str(i[2])
+            report_migraine = 'yes' if i[3] == 1 else 'no'
+            report_medicine = 'yes' if i[4] == 1 else 'no'
+            iid = self.listbox.insert(parent='', index=0, open=True, text=report_date)
+            self.listbox.insert(parent=iid, index=0, values=('Intensity', report_intensity))
+            self.listbox.insert(parent=iid, index=1, values=('Migraine', report_migraine))
+            self.listbox.insert(parent=iid, index=2, values=('Medicine', report_medicine))
+            if i[5] is not None:
+                self.listbox.insert(parent=iid, index=3, values=('Comment', i[5]))
+
         self.button_export_txt.configure(state=tk.NORMAL)
 
     def export_to_txt(self):
+        # for later use:
+        # results.append('{a:_<{width}.{width}}{b:_>{width}.{width}}{c:_>{width}.{width}}{d:_>{width}.{width}}'.
+        # format(a=report_date, b=report_intensity, c=report_migraine, d=report_medicine,
+        # width=int((list_width+2)/4)))
         header = ('*'*120) + '\n' + '{:*^120}'.format(' HEADACHE DIARY v' + __init__.version +
                                                       ' - By Gidalti Lourenço Junior - GPLv3.0 ')
         header += '\n' + ('*'*120) + '\n\n'
@@ -184,7 +196,7 @@ class MainForm(tk.Frame):
         self.check_medicine_value.set(0)
 
         self.label_top = tk.Label(self, text='Choose the date and headache intensity, then click on Save:')
-        self.label_date = tk.Label(self, text='Date:', width=20)
+        self.label_date = tk.Label(self, text='Selected date:', width=20, justify=tk.LEFT)
         self.spin_digits_day = tk.Spinbox(self, from_=0, to=32, increment=1, textvariable=self.spin_value_day,
                                           wrap=True, state='readonly', command=self.validate_date, width=20)
         self.spin_digits_month = tk.Spinbox(self, from_=0, to=13, increment=1, textvariable=self.spin_value_month,
@@ -214,8 +226,33 @@ class MainForm(tk.Frame):
 
         self.balloon = tix.Balloon(self.master)
 
+        self.balloon.bind_widget(self.spin_digits_day,
+                                 balloonmsg='Current selected day.')
+        self.balloon.bind_widget(self.spin_digits_month,
+                                 balloonmsg='Current selected month.')
+        self.balloon.bind_widget(self.spin_digits_year,
+                                 balloonmsg='Current selected year.')
+        self.balloon.bind_widget(self.nextday,
+                                 balloonmsg='Select next day.')
+        self.balloon.bind_widget(self.previousday,
+                                 balloonmsg='Select previous day.')
+        self.balloon.bind_widget(self.yesterday,
+                                 balloonmsg='Select yesterday.')
+        self.balloon.bind_widget(self.today,
+                                 balloonmsg='Select today.')
         self.balloon.bind_widget(self.combo_headache,
                                  balloonmsg='Click to select the intensity of your headache.')
+        self.balloon.bind_widget(self.check_migraine,
+                                 balloonmsg='Mark this box if you feel like the headache is connected to migraine.')
+        self.balloon.bind_widget(self.check_medicine,
+                                 balloonmsg='Mark this box if you took some medicine to alleviate the headache.')
+        self.balloon.bind_widget(self.text_comment,
+                                 balloonmsg='Add any comment you think is relevant for the selected date.')
+        self.balloon.bind_widget(self.button_report,
+                                 balloonmsg='Click here to open the report window, where you will\n'
+                                            ' be able to check all previous dates and information.')
+        self.balloon.bind_widget(self.button_save,
+                                 balloonmsg='Save all the input information for the current selected date.')
 
         self.bind_all('<Alt-Right>', self.next_day)
         self.bind_all('<Alt-Left>', self.previous_day)
@@ -246,10 +283,10 @@ class MainForm(tk.Frame):
         self.rowconfigure(9, weight=0)
         self.rowconfigure(10, weight=0)
 
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
-        self.columnconfigure(2, weight=1)
-        self.columnconfigure(3, weight=1)
+        self.columnconfigure(0, weight=0)
+        self.columnconfigure(1, weight=0)
+        self.columnconfigure(2, weight=0)
+        self.columnconfigure(3, weight=0)
 
         self.label_top.grid(row=0, column=0, sticky=tk.W, columnspan=4)
 
@@ -259,8 +296,8 @@ class MainForm(tk.Frame):
         self.spin_digits_year.grid(row=1, column=3, sticky=tk.W + tk.E)
 
         self.previousday.grid(row=2, column=0, sticky=tk.W, pady=5, padx=5)
-        self.yesterday.grid(row=2, column=1, sticky=tk.W + tk.E, pady=5, padx=5)
-        self.today.grid(row=2, column=2, sticky=tk.W + tk.E, pady=5, padx=5)
+        self.yesterday.grid(row=2, column=1, sticky=tk.W + tk.E, pady=5, padx=2)
+        self.today.grid(row=2, column=2, sticky=tk.W + tk.E, pady=5, padx=2)
         self.nextday.grid(row=2, column=3, sticky=tk.E, pady=5, padx=5)
 
         self.separator.grid(row=3, column=0, sticky=tk.E + tk.W, columnspan=4)
@@ -275,7 +312,7 @@ class MainForm(tk.Frame):
         self.check_medicine.grid(row=6, column=3, sticky=tk.E)
 
         self.label_comment.grid(row=7, column=0, sticky=tk.W + tk.N, padx=5)
-        self.text_comment.grid(row=7, column=1, sticky=tk.W + tk.E, columnspan=3)
+        self.text_comment.grid(row=7, column=1, sticky=tk.W + tk.E, columnspan=3, padx=5)
 
         self.button_save.grid(row=8, column=3, sticky=tk.E + tk.W, pady=5, padx=5)
         self.button_report.grid(row=8, column=0, sticky=tk.E + tk.W, pady=5, padx=5)
@@ -328,6 +365,8 @@ class MainForm(tk.Frame):
         migraine = self.check_migraine_value.get()
         medicine = self.check_medicine_value.get()
         comment = self.text_comment.get('1.0', tk.END)
+        if comment == '\n':
+            comment = None
         self.connection.execute(
             'insert into headache (date, intensity, migraine, medicine, comment) values (?, ?, ?, ?, ?)',
             (full_date, intensity, migraine, medicine, comment))
