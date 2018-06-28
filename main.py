@@ -35,7 +35,7 @@ import __init__  # to get the application version
 class Report(tk.Toplevel):
 
     # TODO: add a check box 'reverse' for displaying the dates on the list and TXT file in reverse order
-    # TODO: Include results for 'migraine', 'medicine' and 'comment' to the list and generated TXT file
+    # TODO: Include results for 'migraine', 'medicine' and 'comment' to generated TXT file
     # TODO: EPIC: add a button to generate graphs of the filtered result with mathPlotLib
 
     def __init__(self, db, master=None):
@@ -59,10 +59,12 @@ class Report(tk.Toplevel):
         self.combo_filter = tk.OptionMenu(self, self.filter_value, *self.filter_values)  # official
         # self.combo_filter = ttk.Combobox(self, textvariable=self.filter_value, values=self.filter_values) # experiment
         self.button_filter = tk.Button(self, text='Filter', command=self.search_data)
-        self.scroll_list = tk.Scrollbar(self, orient=tk.VERTICAL)
-        self.listbox = ttk.Treeview(self, columns=('Attribute', 'Value'), displaycolumns='#all', height=20,
-                                    yscrollcommand=self.scroll_list.set)
-        self.scroll_list.configure(command=self.listbox.yview)
+        self.vscroll_list = tk.Scrollbar(self, orient=tk.VERTICAL)
+        self.hscroll_list = tk.Scrollbar(self, orient=tk.HORIZONTAL)
+        self.hlist = tix.HList(self, yscrollcommand=self.vscroll_list.set, xscrollcommand=self.hscroll_list.set,
+                               columns=5, header=True, height=50, width=100, indicator=True)
+        self.vscroll_list.configure(command=self.hlist.yview)
+        self.hscroll_list.configure(command=self.hlist.xview)
         self.button_export_txt = tk.Button(self, text='Export to txt', command=self.export_to_txt)
         self.separator = ttk.Separator(self, orient=tk.HORIZONTAL)
         self.label_status = tk.Label(self, text='')
@@ -70,6 +72,11 @@ class Report(tk.Toplevel):
         # widgets manipulation on window startup
         self.button_export_txt.configure(state=tk.DISABLED)
         # self.combo_filter.state(statespec=('!disabled', 'readonly'))  # experimental
+        self.hlist.header_create(0, text='Date                          ')
+        self.hlist.header_create(1, text='Intensity')
+        self.hlist.header_create(2, text='Migraine')
+        self.hlist.header_create(3, text='Medicine')
+        self.hlist.header_create(4, text='Comment')
 
         # row and column configuration
         self.rowconfigure(0, weight=0)
@@ -77,6 +84,7 @@ class Report(tk.Toplevel):
         self.rowconfigure(2, weight=0)
         self.rowconfigure(3, weight=0)
         self.rowconfigure(4, weight=0)
+        self.rowconfigure(5, weight=0)
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=0)
         self.columnconfigure(2, weight=0)
@@ -86,14 +94,16 @@ class Report(tk.Toplevel):
         self.label_filter.grid(row=0, column=0, sticky=tk.W)
         self.combo_filter.grid(row=0, column=1, sticky=tk.W + tk.E)
         self.button_filter.grid(row=0, column=2, sticky=tk.W + tk.E)
-        self.listbox.grid(row=1, column=0, sticky=tk.W + tk.E + tk.N + tk.S, columnspan=3)
-        self.scroll_list.grid(row=1, column=3, stick=tk.N + tk.S)
-        self.button_export_txt.grid(row=2, column=0, stick=tk.W, padx=5, pady=5)
-        self.separator.grid(row=3, column=0, stick=tk.W + tk.E, columnspan=4)
-        self.label_status.grid(row=4, column=0, stick=tk.W, columnspan=4)
+        self.hlist.grid(row=1, column=0, sticky=tk.W + tk.E + tk.N + tk.S, columnspan=3)
+        self.vscroll_list.grid(row=1, column=3, sticky=tk.N + tk.S)
+        self.hscroll_list.grid(row=2, column=0, sticky=tk.W + tk.E, columnspan=4)
+        self.button_export_txt.grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
+        self.separator.grid(row=4, column=0, stick=tk.W + tk.E, columnspan=4)
+        self.label_status.grid(row=5, column=0, stick=tk.W, columnspan=4)
 
     def search_data(self):
         self.report_data.clear()
+        self.hlist.delete_all()
         cursor = None
         if self.filter_value.get()[0] == '1':  # last 31 days
             ago31days = (date.today() + timedelta(days=-31)).isoformat()
@@ -118,18 +128,31 @@ class Report(tk.Toplevel):
             quantity = str(value[0][0])
             cursor = self.db.execute('select * from headache order by date ASC')
             self.label_status.configure(text='Report generated for all available data. Returned items: ' + quantity)
+
+        current_row = 0
+
         for i in cursor:
+
+            self.hlist.add(current_row)
+
             self.report_data.append((i[1], i[2], i[3], i[4], i[5]))
             report_date = i[1]
             report_intensity = str(i[2])
             report_migraine = 'yes' if i[3] == 1 else 'no'
             report_medicine = 'yes' if i[4] == 1 else 'no'
-            iid = self.listbox.insert(parent='', index=0, open=True, text=report_date)
-            self.listbox.insert(parent=iid, index=0, values=('Intensity', report_intensity))
-            self.listbox.insert(parent=iid, index=1, values=('Migraine', report_migraine))
-            self.listbox.insert(parent=iid, index=2, values=('Medicine', report_medicine))
+
             if i[5] is not None:
-                self.listbox.insert(parent=iid, index=3, values=('Comment', i[5]))
+                report_comment = i[5][:-1]
+            else:
+                report_comment = ''
+
+            self.hlist.item_create(current_row, 0, text=report_date)
+            self.hlist.item_create(current_row, 1, text=report_intensity)
+            self.hlist.item_create(current_row, 2, text=report_migraine)
+            self.hlist.item_create(current_row, 3, text=report_medicine)
+            self.hlist.item_create(current_row, 4, text=report_comment)
+
+            current_row += 1
 
         self.button_export_txt.configure(state=tk.NORMAL)
 
@@ -205,7 +228,7 @@ class MainForm(tk.Frame):
                                            state='readonly', command=self.validate_date, width=20)
 
         self.nextday = tk.Button(self, text='+1', command=self.next_day)
-        self.previousday = tk.Button(self, text='-1', command=self.previous_day)
+        self.previousday = tk.Button(self, text='- 1', command=self.previous_day)
         self.yesterday = tk.Button(self, text='yesterday', command=self.set_yesterday)
         self.today = tk.Button(self, text='today', command=self.set_today)
 
@@ -282,6 +305,7 @@ class MainForm(tk.Frame):
         self.rowconfigure(8, weight=0)
         self.rowconfigure(9, weight=0)
         self.rowconfigure(10, weight=0)
+        self.rowconfigure(11, weight=0)
 
         self.columnconfigure(0, weight=0)
         self.columnconfigure(1, weight=0)
@@ -312,14 +336,14 @@ class MainForm(tk.Frame):
         self.check_medicine.grid(row=6, column=3, sticky=tk.E)
 
         self.label_comment.grid(row=7, column=0, sticky=tk.W + tk.N, padx=5)
-        self.text_comment.grid(row=7, column=1, sticky=tk.W + tk.E, columnspan=3, padx=5)
+        self.text_comment.grid(row=8, column=0, sticky=tk.W + tk.E, columnspan=4, padx=5)
 
-        self.button_save.grid(row=8, column=3, sticky=tk.E + tk.W, pady=5, padx=5)
-        self.button_report.grid(row=8, column=0, sticky=tk.E + tk.W, pady=5, padx=5)
+        self.button_save.grid(row=9, column=3, sticky=tk.E + tk.W, pady=5, padx=5)
+        self.button_report.grid(row=9, column=0, sticky=tk.E + tk.W, pady=5, padx=5)
 
-        self.separator2.grid(row=9, column=0, sticky=tk.E + tk.W, columnspan=4)
+        self.separator2.grid(row=10, column=0, sticky=tk.E + tk.W, columnspan=4)
 
-        self.label_status.grid(row=10, column=0, sticky=tk.W, columnspan=4)
+        self.label_status.grid(row=11, column=0, sticky=tk.W, columnspan=4)
 
     def increment_month(self):
         if int(self.spin_value_month.get()) in [4, 6, 8, 9, 11]:
