@@ -35,7 +35,6 @@ import __init__  # to get the application version
 class Report(tk.Toplevel):
 
     # TODO: add a check box 'reverse' for displaying the dates on the list and TXT file in reverse order
-    # TODO: Include results for 'migraine', 'medicine' and 'comment' to generated TXT file
     # TODO: EPIC: add a button to generate graphs of the filtered result with mathPlotLib
 
     def __init__(self, db, master=None):
@@ -47,6 +46,7 @@ class Report(tk.Toplevel):
         self.title('Report')
         self.resizable(True, True)
         self.report_data = list()
+        self.column_size = 120
 
         # data
         self.filter_values = ('1 - last 31 days', '2 - this month', '3 - everything')
@@ -62,7 +62,7 @@ class Report(tk.Toplevel):
         self.vscroll_list = tk.Scrollbar(self, orient=tk.VERTICAL)
         self.hscroll_list = tk.Scrollbar(self, orient=tk.HORIZONTAL)
         self.hlist = tix.HList(self, yscrollcommand=self.vscroll_list.set, xscrollcommand=self.hscroll_list.set,
-                               columns=5, header=True, height=50, width=100, indicator=True)
+                               columns=5, header=True, height=25, width=100, indicator=True)
         self.vscroll_list.configure(command=self.hlist.yview)
         self.hscroll_list.configure(command=self.hlist.xview)
         self.button_export_txt = tk.Button(self, text='Export to txt', command=self.export_to_txt)
@@ -157,27 +157,56 @@ class Report(tk.Toplevel):
         self.button_export_txt.configure(state=tk.NORMAL)
 
     def export_to_txt(self):
-        # for later use:
-        # results.append('{a:_<{width}.{width}}{b:_>{width}.{width}}{c:_>{width}.{width}}{d:_>{width}.{width}}'.
-        # format(a=report_date, b=report_intensity, c=report_migraine, d=report_medicine,
-        # width=int((list_width+2)/4)))
-        header = ('*'*120) + '\n' + '{:*^120}'.format(' HEADACHE DIARY v' + __init__.version +
-                                                      ' - By Gidalti Lourenço Junior - GPLv3.0 ')
-        header += '\n' + ('*'*120) + '\n\n'
-        table_header = '{:<60}'.format('Date:') + '{:>60}'.format('Intensity:') + '\n'
-        footer = '\n{:*>120}'.format(' Generated in ' + str(str(datetime.now()).split('.')[0]) + ' ***')
+        header = ('*'*self.column_size) + '\n' + '{:*^{}}'.format(' HEADACHE DIARY v' + __init__.version + ' ',
+                                                                  self.column_size)
+        header += '\n' + ('*'*self.column_size) + '\n\n'
+        table_header = '{a:<{width}}{b:>{width}}{c:>{width}}{d:>{width}}\n'.\
+            format(a='Date:', b='Intensity:', c='Migraine:', d='Medicine:', width=int(self.column_size/4))
+        footer = '{:*>{}}'.format(' Generated in ' + str(str(datetime.now()).split('.')[0]) + ' ***',
+                                  self.column_size)
+        footer += '\n{:*>{}}'.format(' Copyright (C) 2018 Gidalti Lourenço Junior ***', self.column_size)
         path = filedialog.asksaveasfilename(defaultextension='.txt', filetypes=[('TXT', '.txt')],
                                             initialfile='my_headache_diary_report', parent=self)
-        if not path == '':
+
+        if path == () or path == '':
+            self.label_status.configure(text='Export to txt cancelled by the user.')
+        else:
             with open(path, 'w') as file:
                 file.write(header)
                 file.write(table_header)
                 for i in self.report_data:
-                    file.write('{:.<60}'.format(i[0]) + '{:.>60}'.format(i[1]) + '\n')
+                    # i[0] = date; i[1] = intensity; i[2] = migraine; i[3] = medicine; i[4] = comments
+                    file.write('{a:.<{width}}{b:.>{width}}{c:.>{width}}{d:.>{width}}\n'.
+                               format(a=i[0], b=i[1], c=i[2], d=i[3], width=30))
+                    if i[4] is not None:
+                        report_comment = self.breaklines(i[4], self.column_size)
+                        file.write('Comments:\n{e}'.format(e=report_comment))
+                        file.writelines('\n')
                 file.write(footer)
-            self.label_status.configure(text='Report exported to "' + path + '".')
+                self.label_status.configure(text='Report exported to "' + path + '".')
+
+    @staticmethod
+    def breaklines(message, column_size):
+        if len(message) > column_size:
+            array = message.split()
+            lenght = -1
+            count = -1
+            for word in array:
+                count += 1
+                lenght += len(word) + 1
+                if lenght > column_size:
+                    array[count - 1] += '\n'
+                    lenght = 0
+                    lenght += len(array[count]) + 1
+            postmessage = ''
+            for word in array:
+                if str(word).find('\n') < 0:  # if the word has no '\n' then a ' '(empty space) will be added at the end
+                    postmessage += word + ' '
+                else:  # otherwise, if the word has '\n', then nothing is added
+                    postmessage += word
+            return postmessage + '\n'  # return the whole message, with all '\n' and ' '(empty spaces) between the words
         else:
-            self.label_status.configure(text='Export to txt cancelled by the user.')
+            return message
 
 
 class MainForm(tk.Frame):
