@@ -536,6 +536,6 @@ class MainForm(tk.Frame):
 
 
 if __name__ == '__main__':
-    load_tix = tix.Tk()
+    load_tix = tix.Tk(None, None, 'Headache Diary v' + __init__.version)
     app = MainForm()
     app.mainloop()
