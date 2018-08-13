@@ -15,6 +15,6 @@ The application allows to export the report in txt:
 
 ![txtreport](https://i.imgur.com/FMS2GEl.png)
 
-If you have any doubt send an e-mail to: gidaltijunior@gmail.com or open an issue.
+If you have any question or suggestion, please send an e-mail to: gidaltijunior@gmail.com or open an issue.
 
 Read the FAQ in Wiki: https://github.com/gidaltijunior/headache_diary/wiki/FAQ
