@@ -1,0 +1,17 @@
+*background: White
+*activeBackground: LightPink
+*foreground: Black
+*disabledForeground: DarkRed
+*highlightBackground: White
+*readonlyBackground: LightYellow
+*Button*background: LightBlue
+*Menubutton*background: LightBlue
+*Menubutton.menu*background: LightBlue
+*TixBalloon*background: LightYellow
+*Text*background: LightYellow
+*TixHList*background: LightYellow
+*TixHList*selectBackground: LightPink
+*TixHList*headerBackground: LightBlue
+*Scrollbar*background: LightBlue
+*Scrollbar*activeBackground: LightPink
+*Scrollbar*troughColor: LightGray
