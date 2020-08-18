@@ -1,18 +1,20 @@
-# headache_diary
+# Headache Diary v1.3
 A simple way to daily register your headaches and migraines.
 
 Stay tuned! Improvements are on the way!
 
 The main view of the application:
 
-![mainview](https://i.imgur.com/9AGn9bK.png)
+![mainview](https://i.imgur.com/bH2UuR1.png)
 
 The report window:
 
-![report](https://i.imgur.com/p4FkC52.png)
+![report](https://i.imgur.com/z9c6bzg.png)
 
 The application allows to export the report in txt:
 
-![txtreport](https://i.imgur.com/2na5rWe.png)
+![txtreport](https://i.imgur.com/FMS2GEl.png)
 
-If you have any doubt send an e-mail to: gidaltijunior@gmail.com or open an issue.
+If you have any question or suggestion, please send an e-mail to: gidaltijunior@gmail.com or open an issue.
+
+Read the FAQ in Wiki: https://github.com/gidaltijunior/headache_diary/wiki/FAQ
