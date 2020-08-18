@@ -34,6 +34,14 @@ import __init__  # to get the application version
 DISABLED_BUTTON_BKGRND = 'DarkGray'
 ENABLED_BUTTON_BKGRND = 'LightGreen'
 
+# TODO: create a new preferences Window: -> issue #5
+#  Date format options;
+#  User's name for report or customizations;
+#  Language;
+#  Clear all fields after saving or not;
+#  Default date when opened (today, tomorrow, etc);
+#  ASC or DESC Report display
+
 
 class Maintenance(tk.Toplevel):
 
@@ -111,20 +119,20 @@ class Maintenance(tk.Toplevel):
         self.columnconfigure(1, weight=1)
 
         # widget deployment
-        self.label_date.grid(row=0, column=0, sticky=tk.W)
-        self.label_date_value.grid(row=0, column=1, sticky=tk.E)
-        self.label_intensity.grid(row=1, column=0, sticky=tk.W)
+        self.label_date.grid(row=0, column=0, sticky=tk.W, padx=5)
+        self.label_date_value.grid(row=0, column=1, sticky=tk.E, padx=5)
+        self.label_intensity.grid(row=1, column=0, sticky=tk.W, padx=5)
         self.combo_headache.grid(row=1, column=1, sticky=tk.W + tk.E, padx=5)
-        self.label_migraine.grid(row=2, column=0, sticky=tk.W)
-        self.check_migraine.grid(row=2, column=1, sticky=tk.E)
-        self.label_medicine.grid(row=3, column=0, sticky=tk.W)
-        self.check_medicine.grid(row=3, column=1, sticky=tk.E)
-        self.label_comment.grid(row=4, column=0, sticky=tk.W)
-        self.text_comment.grid(row=5, column=0, stick=tk.W + tk.E + tk.N + tk.S, columnspan=2)
+        self.label_migraine.grid(row=2, column=0, sticky=tk.W, padx=5)
+        self.check_migraine.grid(row=2, column=1, sticky=tk.E, padx=5)
+        self.label_medicine.grid(row=3, column=0, sticky=tk.W, padx=5)
+        self.check_medicine.grid(row=3, column=1, sticky=tk.E, padx=5)
+        self.label_comment.grid(row=4, column=0, sticky=tk.W, padx=5)
+        self.text_comment.grid(row=5, column=0, sticky=tk.W + tk.E + tk.N + tk.S, padx=5, columnspan=2)
         self.button_save.grid(row=6, column=1, sticky=tk.E, pady=5, padx=5)
-        self.button_cancel.grid(row=6, column=0, stick=tk.W, pady=5, padx=5)
-        self.separator.grid(row=7, column=0, stick=tk.W + tk.E, columnspan=2)
-        self.label_status.grid(row=8, column=0, stick=tk.W, columnspan=2)
+        self.button_cancel.grid(row=6, column=0, sticky=tk.W, pady=5, padx=5)
+        self.separator.grid(row=7, column=0, sticky=tk.W + tk.E, columnspan=2)
+        self.label_status.grid(row=8, column=0, sticky=tk.W, columnspan=2)
 
     def save_data(self):
         self.intensity = int(self.list_value_headache.get()[0])
@@ -147,7 +155,7 @@ class Maintenance(tk.Toplevel):
 
 class Report(tk.Toplevel):
 
-    # TODO: EPIC: add a button to generate graphs of the filtered result with mathPlotLib
+    # TODO: EPIC: add a button to generate graphs of the filtered result with mathPlotLib -> issue #4
 
     def __init__(self, db, master=None):
         tk.Toplevel.__init__(self)
@@ -176,14 +184,18 @@ class Report(tk.Toplevel):
         self.combo_filter = tk.OptionMenu(self, self.filter_value, *self.filter_values)  # official
         # self.combo_filter = ttk.Combobox(self, textvariable=self.filter_value, values=self.filter_values) # experiment
         self.button_filter = tk.Button(self, text='Filter', command=self.search_data)
-        self.vscroll_list = tk.Scrollbar(self, orient=tk.VERTICAL)
-        self.hscroll_list = tk.Scrollbar(self, orient=tk.HORIZONTAL)
-        self.hlist = tix.HList(self, yscrollcommand=self.vscroll_list.set, xscrollcommand=self.hscroll_list.set,
-                               columns=5, header=True, height=25, width=100, indicator=True, selectmode='browse',
-                               command=self.double_click)
+
+        self.frame_hlist = tk.Frame(self)
+        self.vscroll_list = tk.Scrollbar(self.frame_hlist, orient=tk.VERTICAL)
+        self.hscroll_list = tk.Scrollbar(self.frame_hlist, orient=tk.HORIZONTAL)
+        self.hlist = tix.HList(self.frame_hlist, yscrollcommand=self.vscroll_list.set,
+                               xscrollcommand=self.hscroll_list.set, columns=5, header=True, height=25, width=100,
+                               indicator=True, selectmode='browse', command=self.double_click)
         self.vscroll_list.configure(command=self.hlist.yview)
         self.hscroll_list.configure(command=self.hlist.xview)
+
         self.button_export_txt = tk.Button(self, text='Export to txt', command=self.export_to_txt)
+        self.button_close = tk.Button(self, text='Close', command=self.close)
         self.separator = ttk.Separator(self, orient=tk.HORIZONTAL)
         self.label_status = tk.Label(self, text='')
         self.balloon = tix.Balloon(self.master)
@@ -198,6 +210,8 @@ class Report(tk.Toplevel):
                                  balloonmsg='Double click to edit an entry.')
         self.balloon.bind_widget(self.button_export_txt,
                                  balloonmsg='Export the table values to a text file.')
+        self.balloon.bind_widget(self.button_close,
+                                 balloonmsg='Close this report window.')
 
         # widgets manipulation on window startup
         self.button_export_txt.configure(state=tk.DISABLED)
@@ -215,26 +229,33 @@ class Report(tk.Toplevel):
         self.rowconfigure(2, weight=0)
         self.rowconfigure(3, weight=0)
         self.rowconfigure(4, weight=0)
-        self.rowconfigure(5, weight=0)
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=0)
         self.columnconfigure(2, weight=0)
         self.columnconfigure(3, weight=0)
         self.columnconfigure(4, weight=0)
-        self.columnconfigure(5, weight=0)
+
+        self.frame_hlist.rowconfigure(0, weight=1)
+        self.frame_hlist.rowconfigure(1, weight=0)
+        self.frame_hlist.columnconfigure(0, weight=1)
+        self.frame_hlist.columnconfigure(1, weight=0)
 
         # widget deployment
-        self.label_filter.grid(row=0, column=0, sticky=tk.W)
+        self.label_filter.grid(row=0, column=0, sticky=tk.W, padx=5)
         self.label_reverse.grid(row=0, column=1, sticky=tk.W)
         self.check_reverse.grid(row=0, column=2, sticky=tk.W)
-        self.combo_filter.grid(row=0, column=3, sticky=tk.W + tk.E, padx=5)
-        self.button_filter.grid(row=0, column=4, sticky=tk.W + tk.E)
-        self.hlist.grid(row=1, column=0, sticky=tk.W + tk.E + tk.N + tk.S, columnspan=5)
-        self.vscroll_list.grid(row=1, column=5, sticky=tk.N + tk.S)
-        self.hscroll_list.grid(row=2, column=0, sticky=tk.W + tk.E, columnspan=6)
-        self.button_export_txt.grid(row=3, column=0, sticky=tk.W, padx=5, pady=5)
-        self.separator.grid(row=4, column=0, stick=tk.W + tk.E, columnspan=6)
-        self.label_status.grid(row=5, column=0, stick=tk.W, columnspan=6)
+        self.combo_filter.grid(row=0, column=3, sticky=tk.W + tk.E, pady=5)
+        self.button_filter.grid(row=0, column=4, sticky=tk.W + tk.E, padx=5)
+
+        self.frame_hlist.grid(row=1, column=0, sticky=tk.W + tk.E + tk.N + tk.S, padx=5, columnspan=5)
+        self.hlist.grid(row=0, column=0, sticky=tk.W + tk.E + tk.N + tk.S)
+        self.vscroll_list.grid(row=0, column=1, sticky=tk.N + tk.S)
+        self.hscroll_list.grid(row=1, column=0, sticky=tk.W + tk.E)
+
+        self.button_export_txt.grid(row=2, column=0, sticky=tk.W, padx=5, pady=5)
+        self.button_close.grid(row=2, column=4, sticky=tk.W, padx=5, pady=5)
+        self.separator.grid(row=3, column=0, sticky=tk.W + tk.E, columnspan=5)
+        self.label_status.grid(row=4, column=0, sticky=tk.W, columnspan=5)
 
     def double_click(self, entry):
         entry_number = int(entry)
@@ -255,12 +276,15 @@ class Report(tk.Toplevel):
     def search_data(self):
         self.report_data.clear()
         self.hlist.delete_all()
+        self.button_export_txt.configure(state=tk.DISABLED)
+        self.button_export_txt.configure(background=DISABLED_BUTTON_BKGRND)
 
         if self.check_reverse_dates.get() == 1:
             self.ord = 'DESC'
         else:
             self.ord = 'ASC'
 
+        quantity = 0
         cursor = None
         if self.filter_value.get()[0] == '1':  # last 31 days
             ago31days = (date.today() + timedelta(days=-31)).isoformat()
@@ -312,9 +336,10 @@ class Report(tk.Toplevel):
 
             current_row += 1
 
-        self.button_export_txt.configure(state=tk.NORMAL)
-        self.button_export_txt.configure(background=ENABLED_BUTTON_BKGRND)
-        self.button_export_txt.flash()
+        if int(quantity) > 0:
+            self.button_export_txt.configure(state=tk.NORMAL)
+            self.button_export_txt.configure(background=ENABLED_BUTTON_BKGRND)
+            self.button_export_txt.flash()
 
     def export_to_txt(self):
         header = ('*'*self.column_size) + '\n' + '{:*^{}}'.format(' HEADACHE DIARY v' + __init__.version + ' ',
@@ -368,14 +393,22 @@ class Report(tk.Toplevel):
         else:
             return message
 
+    def close(self):
+        self.destroy()
+
 
 class MainForm(tk.Frame):
 
-    # TODO: create a new database table to keep preferences:
-    # - Date format
-    # - ASC or DESC Report display
-    # - MainForm starts today or yesterday
-    # - etc...
+    # TODO: Create a menu in the MainForm -> issue #6
+    #  File:
+    #  - Quit
+    #  Edit:
+    #  - Preferences
+    #  - Report
+    #  Help:
+    #  - About
+    #  - Documentation
+    #  - License(full GPL 3.0)
 
     def __init__(self, master=None):
         tk.Frame.__init__(self, master, bg='white')
@@ -413,13 +446,18 @@ class MainForm(tk.Frame):
         self.check_medicine_value.set(0)
 
         self.label_top = tk.Label(self, text='Choose the date and headache intensity, then click on Save:')
-        self.label_date = tk.Label(self, text='Selected date:', width=20, justify=tk.LEFT)
-        self.spin_digits_day = tk.Spinbox(self, from_=0, to=32, increment=1, textvariable=self.spin_value_day,
-                                          wrap=True, state='readonly', command=self.validate_date, width=20)
-        self.spin_digits_month = tk.Spinbox(self, from_=0, to=13, increment=1, textvariable=self.spin_value_month,
-                                            wrap=True, state='readonly', command=self.validate_date, width=20)
-        self.spin_digits_year = tk.Spinbox(self, from_=2018, to=3000, increment=1, textvariable=self.spin_value_year,
-                                           state='readonly', command=self.validate_date, width=20)
+
+        self.frame_dates = tk.Frame(self)  # An organizer for the 4 widgets below
+        self.label_date = tk.Label(self.frame_dates, text='Selected date:', width=20, justify=tk.LEFT)
+        self.spin_digits_day = tk.Spinbox(self.frame_dates, from_=0, to=32, increment=1,
+                                          textvariable=self.spin_value_day, wrap=True, state='readonly',
+                                          command=self.validate_date, width=20)
+        self.spin_digits_month = tk.Spinbox(self.frame_dates, from_=0, to=13, increment=1,
+                                            textvariable=self.spin_value_month, wrap=True, state='readonly',
+                                            command=self.validate_date, width=20)
+        self.spin_digits_year = tk.Spinbox(self.frame_dates, from_=2018, to=3000, increment=1,
+                                           textvariable=self.spin_value_year, state='readonly',
+                                           command=self.validate_date, width=20)
 
         self.nextday = tk.Button(self, text='+1', command=self.next_day)
         self.previousday = tk.Button(self, text='- 1', command=self.previous_day)
@@ -490,6 +528,12 @@ class MainForm(tk.Frame):
         top.rowconfigure(0, weight=1)
         top.columnconfigure(0, weight=1)
 
+        self.frame_dates.rowconfigure(0, weight=1)
+        self.frame_dates.columnconfigure(0, weight=0)
+        self.frame_dates.columnconfigure(1, weight=0)
+        self.frame_dates.columnconfigure(2, weight=0)
+        self.frame_dates.columnconfigure(3, weight=0)
+
         self.rowconfigure(0, weight=0)
         self.rowconfigure(1, weight=0)
         self.rowconfigure(2, weight=0)
@@ -508,12 +552,13 @@ class MainForm(tk.Frame):
         self.columnconfigure(2, weight=0)
         self.columnconfigure(3, weight=0)
 
-        self.label_top.grid(row=0, column=0, sticky=tk.W, columnspan=4)
+        self.label_top.grid(row=0, column=0, sticky=tk.W, padx=5, pady=5, columnspan=4)
 
-        self.label_date.grid(row=1, column=0, sticky=tk.W)
-        self.spin_digits_day.grid(row=1, column=1, sticky=tk.W + tk.E)
-        self.spin_digits_month.grid(row=1, column=2, sticky=tk.W + tk.E)
-        self.spin_digits_year.grid(row=1, column=3, sticky=tk.W + tk.E)
+        self.frame_dates.grid(row=1, column=0, sticky=tk.W + tk.E, padx=5, columnspan=4)
+        self.label_date.grid(row=0, column=0, sticky=tk.W)
+        self.spin_digits_day.grid(row=0, column=1, sticky=tk.W + tk.E)
+        self.spin_digits_month.grid(row=0, column=2, sticky=tk.W + tk.E)
+        self.spin_digits_year.grid(row=0, column=3, sticky=tk.W + tk.E)
 
         self.previousday.grid(row=2, column=0, sticky=tk.W, pady=5, padx=5)
         self.yesterday.grid(row=2, column=1, sticky=tk.W + tk.E, pady=5, padx=2)
@@ -523,13 +568,13 @@ class MainForm(tk.Frame):
         self.separator.grid(row=3, column=0, sticky=tk.E + tk.W, columnspan=4)
         
         self.label_intensity.grid(row=4, column=0, sticky=tk.W, columnspan=2, padx=5)
-        self.combo_headache.grid(row=4, column=2, sticky=tk.E + tk.W, columnspan=2)
+        self.combo_headache.grid(row=4, column=2, sticky=tk.E + tk.W, columnspan=2, padx=5)
 
         self.label_migraine.grid(row=5, column=0, sticky=tk.W, columnspan=2, padx=5)
-        self.check_migraine.grid(row=5, column=3, sticky=tk.E)
+        self.check_migraine.grid(row=5, column=3, sticky=tk.E, padx=5)
 
         self.label_medicine.grid(row=6, column=0, sticky=tk.W, columnspan=2, padx=5)
-        self.check_medicine.grid(row=6, column=3, sticky=tk.E)
+        self.check_medicine.grid(row=6, column=3, sticky=tk.E, padx=5)
 
         self.label_comment.grid(row=7, column=0, sticky=tk.W + tk.N, padx=5)
         self.text_comment.grid(row=8, column=0, sticky=tk.W + tk.E, columnspan=4, padx=5)
@@ -599,6 +644,14 @@ class MainForm(tk.Frame):
     def load_database():
         database = sql.Connection('headache_diary.db')
         return database
+
+    # TODO: create a new database table to keep preferences: -> issue #5
+    #  Date format options;
+    #  User's name for report or customizations;
+    #  Language;
+    #  Clear all fields after saving or not;
+    #  Default date when opened (today, tomorrow, etc);
+    #  ASC or DESC Report display
 
     def initialize_database(self):
         try:
